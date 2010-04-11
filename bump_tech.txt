@@ -1,0 +1,47 @@
+12:16
+Starting to think about #1.
+
+Basic algorithm: start with a template of the checkerboard we're trying to detect. Move it across the whole image, take the difference between what is there and the checkerboard.
+
+If the error is small enough, consider a checkerboard there.
+
+Now we need to filter the results, because adjacent pixels in the middle of a checkerboard would both score high. Basic algorithm here is to assume there is no overlap in checkboards and run through the set grouping those that overlap. For those that overlap, pick the one with the lowest error. An alternative would be to use the group location to initialize a proper sub-pixel resolution minimization function to find the real location. A good choice would be KLT http://www.ces.clemson.edu/~stb/klt/
+
+The threshold on the "error" between the ideal checkerboard and what is in the image will determine the number of false positives and true positives. We can vary this around to find the points on the ROC curve. http://en.wikipedia.org/wiki/Receiver_operating_characteristic
+
+That is a better answer than a probability for a given answer. This does require some ground truth - and I'm going to judge myself what I'd consider a true or false positive.
+
+d) Improvements. For each position, we're finding the error. This is wasteful, as you're really repeatedly comparing each pixel to either 0 or 255. A better solution would be to construct a summation image, where each pixel (x1,y1) is the sum from (0...x1, 0...y1). Make one of these for both black and white. Then the sum of the error in a given area can be calculated by doing just 4 operations (top_left + bottom_right - top_right - bottom_left). As the size of each place in the checkerboard gets bigger, this advantage really pays off.
+
+
+12:47
+Ok, time to start coding. The plan:
+- Grab the image, setup a test environment
+- Find a library to read and write tifs into python
+- Make a template for the checkerboard. That just requires an estimate for the width, height and sub-square size.
+- Make a utility to compare the template to a part in the image.
+- Run through the whole image, and estimate the error rate. Pickle this for later analysis so we don't need to run through the image again and again.
+- Filter the list for a given threshold, write an accumulator that groups those that overlap geographically, and pick the best.
+- Write a basic graphics tool to mark the locations, so we can visually see the results.
+- Try a bunch of samples of the filter threshold to plot the ROC curve.
+
+
+------------
+Bump Data Challenge
+
+In general we like precise statements and graphs.
+
+1. Look at the image http://andybots.com/checkers.tif  
+You will notice there are some checkboards embedded in a noisy image.
+The challenge is: 
+a) What is the position of each checkerboard.  There are at least 8, maybe more.  3 of them are super-easy.
+b) What is the certainty that a checkerboard is at this position, or said another way: what is the probability a checkboard detection/classification was due to random noise.
+c) Is there position uncertainty in the position estimates?
+d) How efficient is your algorithm.  Is there a way to improve it? (You don't need to)
+
+2. A square meter of sidewalk has raindrops falling on it.  On average raindrops arrive at a rate of 1 Hz.
+a) After one raindrop arrives, what is the probability P that another raindrop arrives within 50 milliseconds.  Assume raindrops are not correlated to each other in any way. 
+b) What about the probability that 2 raindrops arrive within 50 msec?
+c) How long will it take before P=0.5 for 1 more raindrop?
+d) The data set http://andybots.com/raindrops.txt contains arrival times for special raindrops landing on our sidewalk.  They may be correlated in some way.  Please analyze.
+------------
